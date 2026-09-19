@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LiveGrab: clip live streams from inside OBS</title>
+<meta name="description" content="LiveGrab pulls any Twitch, Kick or YouTube live stream into OBS and clips it with one key, with a 9:16 version ready for TikTok, Shorts and Reels.">
+<meta property="og:title" content="LiveGrab for OBS">
+<meta property="og:description" content="Clip anyone's live stream while they're live. One key, 9:16 ready.">
+<meta property="og:image" content="img/dock.png">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0f14; --bg2:#14151c; --panel:#1b1c24; --panel2:#23242e; --line:#2e2f3b;
+  --text:#ecebf4; --muted:#9a99ad; --dim:#6d6c80;
+  --violet:#6d5dfc; --violet2:#8b7dff; --red:#ef4444; --green:#22c55e;
+  --radius:14px; --max:1120px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:"Space Grotesk",Inter,sans-serif;line-height:1.1;margin:0}
+h2{font-size:clamp(28px,4vw,40px);letter-spacing:-.01em}
+.eyebrow{font:600 12px/1 Inter,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--violet2)}
+.muted{color:var(--muted)}
+
+/* nav */
+nav{position:sticky;top:0;z-index:10;background:rgba(14,15,20,.8);backdrop-filter:blur(10px);border-bottom:1px solid rgba(46,47,59,.6)}
+nav .wrap{display:flex;align-items:center;gap:24px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 18px "Space Grotesk",sans-serif;letter-spacing:.06em}
+.brand img{width:30px;height:30px;border-radius:8px}
+.navlinks{display:flex;gap:22px;margin-left:auto;font-size:14px}
+.navlinks a{text-decoration:none;color:var(--muted)}.navlinks a:hover{color:var(--text)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:10px;padding:13px 20px;border-radius:10px;font-weight:600;text-decoration:none;border:1px solid var(--line);background:var(--panel);transition:transform .15s,background .15s,border-color .15s}
+.btn:hover{border-color:#44455a;transform:translateY(-1px)}
+.btn.primary{background:var(--violet);border-color:var(--violet);color:#fff;box-shadow:0 10px 30px -10px rgba(109,93,252,.7)}
+.btn.primary:hover{background:var(--violet2);border-color:var(--violet2)}
+.btn svg{width:18px;height:18px}
+.btn.sm{padding:8px 14px;font-size:14px}
+
+/* hero */
+.hero{position:relative;overflow:hidden;padding:80px 0 60px}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto -10%;height:720px;background:radial-gradient(600px 380px at 20% 30%,rgba(109,93,252,.28),transparent 70%),radial-gradient(520px 360px at 85% 20%,rgba(239,68,68,.16),transparent 70%);pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.live-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--line);border-radius:99px;background:rgba(27,28,36,.8);font-size:13px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(239,68,68,.6);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 9px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.hero h1{font-size:clamp(40px,6.2vw,72px);letter-spacing:-.02em;margin:18px 0 18px}
+.hero h1 em{font-style:normal;background:linear-gradient(90deg,var(--violet2),#c3baff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.lead{font-size:clamp(17px,2vw,20px);color:var(--muted);max-width:560px;margin:0 0 30px}
+.cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.meta{margin-top:16px;font-size:13px;color:var(--dim);display:flex;flex-wrap:wrap;gap:6px 16px}
+.meta span::before{content:"✓ ";color:var(--green)}
+.shot{position:relative;justify-self:center;max-width:380px;width:100%}
+.shot .frame{border-radius:18px;padding:10px;background:linear-gradient(180deg,#262736,#15161d);border:1px solid var(--line);box-shadow:0 40px 90px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.02) inset}
+.shot .frame img{border-radius:10px}
+.shot .tag{position:absolute;left:-26px;bottom:120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 20px 40px -15px rgba(0,0,0,.7)}
+.shot .tag b{display:block;font-size:12px;color:var(--green)}
+
+/* sections */
+section{padding:80px 0}
+.center{text-align:center}
+.sec-head{max-width:640px;margin:0 auto 44px;text-align:center}
+.sec-head p{color:var(--muted);margin:14px 0 0}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;counter-reset:s}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:24px}
+.step::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:rgba(109,93,252,.15);color:var(--violet2);font:700 16px "Space Grotesk",sans-serif;margin-bottom:14px}
+.step h3{font-size:19px;margin-bottom:8px}
+.step p{margin:0;color:var(--muted);font-size:15px}
+kbd{font:600 12px/1 ui-monospace,Consolas,monospace;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:3px 7px;color:var(--text)}
+
+/* features */
+.features{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.feat{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.feat .ic{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;background:var(--panel2);margin-bottom:14px}
+.feat .ic svg{width:20px;height:20px;stroke:var(--violet2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.feat h3{font-size:17px;margin-bottom:6px}
+.feat p{margin:0;color:var(--muted);font-size:14.5px}
+
+/* split */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.split .shot{max-width:360px}
+.list{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:14px}
+.list li{display:flex;gap:12px;color:var(--muted)}
+.list li b{color:var(--text)}
+.list li::before{content:"";flex:none;width:8px;height:8px;margin-top:9px;border-radius:50%;background:var(--violet)}
+
+/* install */
+.install{background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.install-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:28px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px}
+.card h3{font-size:20px;margin-bottom:14px}
+ol.clean{margin:0;padding-left:20px;display:grid;gap:10px;color:var(--muted)}
+ol.clean b{color:var(--text)}
+.note{margin-top:18px;padding:12px 14px;border-radius:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);font-size:14px;color:#e9d3a4}
+.req{list-style:none;padding:0;margin:0;display:grid;gap:10px;font-size:15px}
+.req li{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.req li span:first-child{color:var(--muted)}
+.hotkeys{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;align-items:center;margin-top:18px;font-size:15px}
+
+/* faq */
+.faq{max-width:760px;margin:0 auto;display:grid;gap:10px}
+details{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:0 20px}
+summary{cursor:pointer;list-style:none;padding:18px 0;font-weight:600;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--violet2);font-size:20px;line-height:1}
+details[open] summary::after{content:"−"}
+details p{margin:0 0 18px;color:var(--muted)}
+
+/* final cta */
+.final{text-align:center;padding:90px 0}
+.final h2{margin-bottom:14px}
+.final p{color:var(--muted);margin:0 0 28px}
+
+footer{border-top:1px solid var(--line);padding:30px 0 40px;font-size:13px;color:var(--dim)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 24px;justify-content:space-between}
+footer a{color:var(--muted)}
+
+@media (max-width:900px){
+  .hero .wrap,.split,.install-grid{grid-template-columns:1fr}
+  .hero{padding-top:48px}
+  .shot .tag{left:6px}
+  .steps,.features{grid-template-columns:1fr 1fr}
+  .navlinks{display:none}
+  .split .shot{order:-1}
+}
+@media (max-width:600px){
+  .steps,.features{grid-template-columns:1fr}
+  section{padding:60px 0}
+  .btn{width:100%;justify-content:center}
+  nav .btn{width:auto}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#"><img src="img/icon.png" alt="">LIVEGRAB</a>
+    <div class="navlinks">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#install">Install</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/TimmyAmant/livegrab">GitHub</a>
+    </div>
+    <a class="btn primary sm" href="https://github.com/TimmyAmant/livegrab/releases/latest/download/LiveGrabSetup.exe">Download</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="live-pill"><span class="dot"></span>Works on Twitch, Kick and YouTube</span>
+      <h1>Clip anyone's stream <em>while they're live.</em></h1>
+      <p class="lead">LiveGrab pulls a live stream straight into OBS and keeps the last few minutes ready. Press one key and the clip is saved, with a 9:16 version for TikTok, Shorts and Reels.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/TimmyAmant/livegrab/releases/latest/download/LiveGrabSetup.exe">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+          Download for Windows
+        </a>
+        <a class="btn" href="https://github.com/TimmyAmant/livegrab/releases">Release notes</a>
+      </div>
+      <div class="meta"><span>Free</span><span>One-click installer</span><span>Updates itself</span></div>
+    </div>
+    <div class="shot">
+      <div class="frame"><img src="img/dock.png" alt="The LiveGrab dock inside OBS, showing a live channel, the CLIP IT button and a progress bar"></div>
+      <div class="tag"><b>Saved ✓</b>streamer_22-41-07_vertical.mp4</div>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">How it works</div>
+      <h2 style="margin-top:12px">Three steps, then just press a key</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><h3>Type a channel</h3><p>Enter a name like <b>xqc</b> or paste a Twitch, Kick or YouTube link into the LiveGrab dock and hit Start.</p></div>
+      <div class="step"><h3>Watch in OBS</h3><p>Their stream shows up in your scene. LiveGrab quietly keeps the last couple of minutes saved in the background.</p></div>
+      <div class="step"><h3>Press <kbd>F9</kbd></h3><p>The last 30 seconds (or 15s, 60s, 2m) save instantly. A progress bar shows exactly how long until it's done.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="features" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Features</div>
+      <h2 style="margin-top:12px">Built for clipping on the go</h2>
+      <p>Everything lives in one panel inside OBS, so you never leave the stream.</p>
+    </div>
+    <div class="features">
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></div><h3>9:16 ready</h3><p>Save widescreen, vertical only, or both. Pick a blurred background or crop to fill the phone screen.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><h3>Keep rolling</h3><p>Press the key the moment something starts. LiveGrab records 5 to 15 more seconds so you catch the payoff.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div><h3>Original quality</h3><p>Clips are cut straight from their stream with no re-encoding, so the 16:9 version saves in about a second.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 7h5l2 3h11v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div><h3>Save anywhere</h3><p>Choose any folder, or one-tap Videos, Desktop or another drive. Recent clips open with a click.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></div><h3>Works with OBS Replay</h3><p>Start and Stop can also run the OBS Replay Buffer and recording for full-screen clips with your overlays.</p></div>
+      <div class="feat"><div class="ic"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div><h3>Updates itself</h3><p>New versions download in the background and install the next time you close OBS. Your settings stay put.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split">
+    <div>
+      <div class="eyebrow">Settings</div>
+      <h2 style="margin-top:12px">Set it once, forget it</h2>
+      <ul class="list">
+        <li><span><b>Auto-start</b> the last channel whenever OBS opens.</span></li>
+        <li><span><b>Low latency</b> mode keeps the feed only a few seconds behind on Twitch and Kick.</span></li>
+        <li><span><b>Offline? No problem.</b> LiveGrab waits and connects the moment they go live.</span></li>
+        <li><span><b>Buffer size</b> from 1 to 10 minutes, so you can grab the long ones too.</span></li>
+      </ul>
+    </div>
+    <div class="shot"><div class="frame"><img src="img/settings.png" alt="LiveGrab settings page with save folder, stream, replay buffer, updates and hotkeys"></div></div>
+  </div>
+</section>
+
+<section id="install" class="install">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Install</div>
+      <h2 style="margin-top:12px">One installer does everything</h2>
+      <p>It installs what's missing, sets up an OBS profile with scenes and audio ready to go, and adds the dock.</p>
+    </div>
+    <div class="install-grid">
+      <div class="card">
+        <h3>Get set up in about 2 minutes</h3>
+        <ol class="clean">
+          <li><b>Close OBS.</b></li>
+          <li>Download and run <b>LiveGrabSetup.exe</b>.</li>
+          <li>It installs OBS, Python and Streamlink if you don't have them.</li>
+          <li>Open OBS. It starts on the <b>LiveGrab</b> profile with the dock on the right.</li>
+          <li>Type a channel, click <b>Start</b>, press <kbd>F9</kbd>.</li>
+        </ol>
+        <div class="note">Windows may say "Windows protected your PC" because the installer isn't code-signed yet. Click <b>More info</b>, then <b>Run anyway</b>.</div>
+      </div>
+      <div class="card">
+        <h3>Requirements</h3>
+        <ul class="req">
+          <li><span>System</span><span>Windows 10 or 11</span></li>
+          <li><span>OBS Studio</span><span>30 or newer</span></li>
+          <li><span>9:16 export</span><span>NVIDIA GPU is fastest</span></li>
+          <li><span>Platforms</span><span>Twitch, Kick, YouTube</span></li>
+        </ul>
+        <div class="hotkeys">
+          <kbd>F9</kbd><span>Clip it</span>
+          <kbd>F10</kbd><span>Save OBS replay</span>
+          <kbd>F8</kbd><span>Start / stop</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head"><div class="eyebrow">FAQ</div><h2 style="margin-top:12px">Questions</h2></div>
+    <div class="faq">
+      <details><summary>Is LiveGrab free?</summary><p>Yes. Download it from the releases page and use it as much as you like.</p></details>
+      <details><summary>Will it mess with my existing OBS setup?</summary><p>No. It creates its own "LiveGrab" profile and scene collection and backs up your OBS settings first. Your other profiles and scenes aren't touched, and you can switch back from the Profile and Scene Collection menus.</p></details>
+      <details><summary>Can I stream my own game while it's clipping someone else?</summary><p>Yes. The built-in clip buffer records their stream directly, so it works even when their stream isn't on your screen.</p></details>
+      <details><summary>Which sites does it work with?</summary><p>Twitch, Kick and YouTube Live, plus most other sites that Streamlink supports. Just paste the channel link.</p></details>
+      <details><summary>How do updates work?</summary><p>LiveGrab checks this project's GitHub releases when OBS opens. If there's a new version, click Update in the dock's Settings. It downloads in the background and installs the next time you close OBS.</p></details>
+      <details><summary>How do I uninstall it?</summary><p>Open Windows Settings, go to Apps, find "LiveGrab for OBS" and click Uninstall. OBS and your LiveGrab profile are left in place so nothing breaks.</p></details>
+      <details><summary>Can I post clips of other people's streams?</summary><p>It's their content. Get the streamer's permission or follow each platform's clip rules before posting.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>Ready to grab your first clip?</h2>
+    <p>Free for Windows. Installs in about 2 minutes.</p>
+    <a class="btn primary" href="https://github.com/TimmyAmant/livegrab/releases/latest/download/LiveGrabSetup.exe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-5-5m5 5l5-5M4 21h16"/></svg>
+      Download LiveGrab
+    </a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>LiveGrab for OBS. Made by NYXTimmy.</span>
+    <span><a href="https://github.com/TimmyAmant/livegrab">GitHub</a> · <a href="https://github.com/TimmyAmant/livegrab/releases">Releases</a> · <a href="https://github.com/TimmyAmant/livegrab/issues">Report a bug</a></span>
+    <span>Not affiliated with OBS, Twitch, Kick or YouTube.</span>
+  </div>
+</footer>
+
+</body>
+</html>

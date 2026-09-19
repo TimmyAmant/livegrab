@@ -47,4 +47,4 @@ Windows Settings > Apps > **LiveGrab for OBS** > Uninstall.
 Clips of someone else's stream are their content. Get the streamer's permission or follow each platform's clip rules before posting.
 
 ---
-Made by NYXTimmy. Not affiliated with OBS, Twitch, Kick or YouTube.
+Made by LiveGrab. Not affiliated with OBS, Twitch, Kick or YouTube.

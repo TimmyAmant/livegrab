@@ -1,0 +1,265 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>LiveGrab dock demo</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#1b1c21;--panel:#25262d;--panel2:#2d2e36;--line:#393a44;--text:#e8e8ec;--muted:#9c9da8;
+--live:#ef4444;--ok:#22c55e;--warn:#f59e0b;--accent:#6d5dfc;--accent2:#8b7dff}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
+font:13px/1.35 "Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none;overflow:hidden}
+.wrap{height:100%;padding:10px;display:flex;flex-direction:column;gap:10px;overflow:auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.fill{flex:1 1 auto;min-height:140px}
+.row{display:flex;gap:6px;align-items:center}
+.status{display:flex;align-items:center;gap:8px;font-weight:600}
+.dot{width:10px;height:10px;border-radius:50%;background:#666;flex:none}
+.dot.live{background:var(--live);animation:p 1.6s infinite}
+.dot.connecting,.dot.reconnecting{background:var(--warn)}.dot.offline{background:#777}.dot.error{background:var(--live)}
+@keyframes p{0%{box-shadow:0 0 0 0 rgba(239,68,68,.55)}70%{box-shadow:0 0 0 8px rgba(239,68,68,0)}100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}}
+.sub{color:var(--muted);font-size:12px;font-weight:400}.grow{flex:1;min-width:0}
+.ellip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+input[type=text],select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:6px;
+padding:7px 8px;font:inherit;outline:none;min-width:0}
+input[type=text]{flex:1;-webkit-user-select:text;user-select:text}input[type=text]:focus,select:focus{border-color:var(--accent)}
+button{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:6px;
+padding:7px 10px;cursor:pointer}button:hover{border-color:#50515d}button:active{transform:translateY(1px)}
+button:disabled{opacity:.45;cursor:default}
+.primary{background:var(--accent);border-color:var(--accent)}.primary:hover{background:var(--accent2);border-color:var(--accent2)}
+.stop{background:#3a2326;border-color:#6b2a30}
+.icon{padding:5px 8px;line-height:0;flex:none;position:relative}
+.icon .pip{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 2px var(--panel);display:none}
+.icon.has-update .pip{display:block}
+.upd-notes{font-size:12px;color:#c9cad3;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:8px;max-height:140px;overflow:auto;white-space:pre-wrap;-webkit-user-select:text;user-select:text;display:none}
+.upd-bar{height:6px;border-radius:4px;background:var(--panel2);overflow:hidden;display:none}.upd-bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+.okbtn{background:#1f5f3a;border-color:#2d8a55}.okbtn:hover{background:#26734a;border-color:#35a063}.icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.clip{width:100%;padding:18px 10px;font-size:22px;font-weight:800;letter-spacing:.06em;border:none;border-radius:8px;
+background:linear-gradient(180deg,#f15a5a,#d33636);color:#fff}
+.clip:hover{filter:brightness(1.08)}.clip.busy{background:#7a3b3b}
+.clip small{display:block;font-size:11px;font-weight:500;letter-spacing:0;opacity:.85;margin-top:2px}
+.prog{display:none;flex-direction:column;gap:5px}.prog.show{display:flex}
+.prog .top{display:flex;justify-content:space-between;gap:8px;font-size:12px}
+.prog .top b{font-weight:600}.prog .eta{color:var(--muted);font-variant-numeric:tabular-nums;flex:none}
+.track{height:8px;border-radius:5px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}
+.bar{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .35s linear}
+.prog.done .bar{background:var(--ok)}.prog.failed .bar{background:var(--live)}
+.prog .more{font-size:11px;color:var(--muted)}
+.chips{display:flex;gap:4px}.chips button{flex:1;padding:5px 0;font-size:12px}
+.chips button.on{background:var(--accent);border-color:var(--accent)}
+label.tg{display:flex;align-items:center;gap:8px;cursor:pointer}
+.lbl{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.clips{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-height:0;overflow:auto}
+.ci{display:flex;align-items:center;gap:6px;padding:6px;border-radius:6px;cursor:pointer}
+.ci:hover{background:var(--panel2)}.ci .t{color:var(--muted);font-size:11px;flex:none}
+.badge{font-size:10px;padding:1px 5px;border-radius:4px;background:#34305e;color:#c9c3ff;flex:none}
+.empty{color:var(--muted);font-size:12px;padding:4px}
+.banner{background:#3a2326;border:1px solid #6b2a30;border-radius:8px;padding:10px;display:none}
+details summary{cursor:pointer;color:var(--muted);font-size:12px}
+pre{margin:6px 0 0;white-space:pre-wrap;font:11px/1.4 Consolas,monospace;color:#b9bac4;max-height:160px;overflow:auto;-webkit-user-select:text;user-select:text}
+.path{font:12px Consolas,monospace;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 8px;
+word-break:break-all;-webkit-user-select:text;user-select:text}
+.qp{display:grid;grid-template-columns:1fr 1fr;gap:4px}.qp button{font-size:12px;padding:6px 4px}
+.qp button.on{border-color:var(--accent);color:#c9c3ff}
+.hk{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12px}
+kbd{font:11px Consolas,monospace;background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:1px 6px;justify-self:start}
+#settings{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column}
+#settings.open{display:flex}
+.shead{display:flex;align-items:center;gap:8px;padding:10px 10px 0}
+.shead b{flex:1;font-size:14px}
+.sbody{flex:1;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:10px}
+.toast{position:fixed;left:10px;right:10px;bottom:10px;background:#2b2c34;border:1px solid var(--line);border-radius:8px;
+padding:9px 10px;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none;z-index:9}.toast.show{opacity:1;transform:none}
+</style></head><body><div class="wrap" id="main">
+<div class="banner" id="banner"><b>Can't reach LiveGrab.</b><div class="sub">Make sure livegrab.py is loaded in Tools &gt; Scripts.</div></div>
+
+<div class="card">
+  <div class="row"><div class="status grow"><span class="dot" id="dot"></span>
+    <span class="ellip" id="stxt">Stopped</span></div><span class="sub" id="upt"></span>
+    <button class="icon" id="gear" title="Settings"><span class="pip"></span><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button></div>
+  <div class="row"><input type="text" id="url" placeholder="Channel: xqc, kick.com/name, youtube.com/@name/live" spellcheck="false"></div>
+  <div class="row"><select id="quality" class="grow">
+    <option>best</option><option>1080p60</option><option>1080p</option><option>720p60</option><option>720p</option><option>480p</option><option>audio_only</option>
+  </select><button id="go" class="primary" style="min-width:84px">Start</button></div>
+</div>
+
+<div class="card">
+  <button class="clip" id="clip">CLIP IT<small id="cliplbl">last 30s</small></button>
+  <div class="prog" id="prog"><div class="top"><b class="ellip" id="plbl">Saving clip...</b><span class="eta" id="peta"></span></div>
+    <div class="track"><div class="bar" id="pbar"></div></div><div class="more" id="pmore"></div></div>
+  <div><div class="lbl" style="margin-bottom:4px">Length</div>
+  <div class="chips" id="len"><button data-v="15">15s</button><button data-v="30">30s</button><button data-v="60">60s</button><button data-v="120">2m</button></div></div>
+  <div><div class="lbl" style="margin-bottom:4px">Keep rolling after press</div>
+  <div class="chips" id="post"><button data-v="0">0s</button><button data-v="5">+5s</button><button data-v="10">+10s</button><button data-v="15">+15s</button></div></div>
+  <div><div class="lbl" style="margin-bottom:4px">Save as</div>
+  <div class="chips" id="fmt"><button data-v="wide" title="Normal widescreen clip only">16:9</button><button data-v="vertical" title="Only the vertical TikTok / Shorts version">9:16 only</button><button data-v="both" title="Keep both versions">Both</button></div></div>
+  <div class="row" id="vrow"><span class="grow sub">9:16 style</span>
+  <select id="vmode"><option value="blur">Blur background</option><option value="crop">Crop to fill</option></select></div>
+  <div class="row"><button id="rb" class="grow">Save OBS Replay</button><button id="folder" class="grow">Open folder</button></div>
+</div>
+
+<div class="card fill"><div class="row"><div class="lbl grow">Recent clips</div><span class="sub ellip" id="savedto" style="max-width:60%;cursor:pointer" title="Change in Settings"></span></div>
+<div class="clips" id="clips"><div class="empty">No clips yet.</div></div></div>
+<details class="card"><summary>Log</summary><pre id="log"></pre></details>
+</div>
+
+<div id="settings">
+  <div class="shead"><button class="icon" id="back" title="Back"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Settings</b><span class="sub" id="ver"></span></div>
+  <div class="sbody">
+    <div class="card">
+      <div class="lbl">Save clips to</div>
+      <div class="path" id="dir">...</div>
+      <div class="row"><button id="browse" class="primary grow">Browse...</button><button id="opendir" class="grow">Open</button></div>
+      <div class="qp" id="presets"></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Stream</div>
+      <label class="tg"><input type="checkbox" id="s_ll"> Low latency (Twitch / Kick)</label>
+      <div class="row"><span class="grow">Buffer kept on disk</span><select id="s_buf">
+        <option value="60">1 min</option><option value="120">2 min</option><option value="300">5 min</option><option value="600">10 min</option></select></div>
+      <label class="tg"><input type="checkbox" id="s_auto"> Start the last channel when OBS opens</label>
+    </div>
+    <div class="card">
+      <div class="lbl">OBS Replay Buffer &amp; Recording</div>
+      <label class="tg"><input type="checkbox" id="s_rb"> Turn Replay Buffer on/off with Start/Stop</label>
+      <label class="tg"><input type="checkbox" id="s_rec"> Turn Recording on/off with Start/Stop</label>
+      <label class="tg"><input type="checkbox" id="s_ren"> Rename replays and move them to the clips folder</label>
+    </div>
+    <div class="card">
+      <div class="lbl">Updates</div>
+      <div class="row"><div class="grow"><b id="u_cur">LiveGrab</b><div class="sub" id="u_msg">Up to date</div></div></div>
+      <div class="upd-bar" id="u_bar"><i id="u_fill"></i></div>
+      <div class="upd-notes" id="u_notes"></div>
+      <button id="u_btn" class="grow">Check for updates</button>
+      <label class="tg"><input type="checkbox" id="u_auto"> Check for updates when OBS opens</label>
+    </div>
+    <div class="card">
+      <div class="lbl">Hotkeys</div>
+      <div class="hk"><kbd>F9</kbd><span>Clip it</span><kbd>F10</kbd><span>Save OBS replay</span><kbd>F8</kbd><span>Start / stop</span></div>
+      <div class="sub">Change these in OBS Settings &gt; Hotkeys (search "LiveGrab").</div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+/* Demo mode: fake LiveGrab so the real dock UI can be shown on the website */
+(function(){
+const S={"status": "live", "running": true, "url": "twitch.tv/streamer", "channel": "streamer", "quality": "1080p60", "live_for": 2745, "clip_seconds": 30, "post_roll": 5, "vertical": true, "vertical_only": true, "vertical_mode": "blur", "obs_rb": true, "clipping": 0, "clips": [{"name": "streamer_2026-09-18_22-41-07_vertical.mp4", "ago": "12s ago", "vertical": true, "only": true}, {"name": "streamer_2026-09-18_22-38-52_vertical.mp4", "ago": "2m ago", "vertical": true, "only": true}, {"name": "streamer_2026-09-18_22-31-20.mp4", "ago": "9m ago", "vertical": true, "only": false}, {"name": "streamer_2026-09-18_22-26-23.mp4", "ago": "15m ago", "vertical": true, "only": false}], "clip_total": 4, "clips_dir": "C:\\Users\\you\\Videos\\LiveGrab", "log": ["22:10:02  Loaded v1.6.1", "22:10:05  LIVE: receiving streamer. Clip hotkey is ready.", "22:41:07  Clip saved (35s): streamer_2026-09-18_22-41-07_vertical.mp4"], "version": "1.6.1", "presets": [{"key": "videos", "label": "Videos", "path": "C:\\Users\\you\\Videos\\LiveGrab", "active": true}, {"key": "desktop", "label": "Desktop", "path": "C:\\Users\\you\\Desktop\\LiveGrab", "active": false}, {"key": "d", "label": "D: drive", "path": "D:\\LiveGrab", "active": false}, {"key": "e", "label": "E: drive", "path": "E:\\LiveGrab", "active": false}], "picking": false, "jobs": [], "low_latency": true, "buffer_seconds": 120, "auto_start": true, "use_obs_replay": true, "rename_obs_replays": true, "update_auto": true, "record_with_grab": false, "update": {"state": "none", "latest": "1.6.1", "notes": "", "pct": 0, "msg": ""}};let t0=Date.now(),job=null;
+function st(){const s=JSON.parse(JSON.stringify(S));s.live_for=S.live_for+(Date.now()-t0)/1000;
+ if(job){const el=(Date.now()-job.t)/1000,tot=job.post+6;if(el>=tot+2){job=null}else{const stage=el<job.post?"rolling":el<job.post+1?"saving":el<tot?"vertical":"done";
+  s.jobs=[{id:1,stage,label:stage==="rolling"?"Recording "+Math.ceil(job.post-el)+"s more...":stage==="saving"?"Saving clip...":stage==="vertical"?"Making 9:16 copy...":"Saved",pct:Math.min(100,100*el/tot),eta:Math.max(0,tot-el),name:"streamer_demo_clip_vertical.mp4",kind:"clip"}];s.clipping=stage==="done"?0:1}}
+ return s}
+function upd(b){for(const k in b){if(k==="output"){S.vertical=b.output!=="wide";S.vertical_only=b.output==="vertical"}else if(k in S)S[k]=b[k]}}
+const real=window.fetch;
+window.fetch=async function(u,o){u=String(u);
+ if(u.includes("/api/status"))return new Response(JSON.stringify(st()),{headers:{"Content-Type":"application/json"}});
+ if(u.includes("/api/")){const a=u.split("/api/")[1];let b={};try{b=JSON.parse(o&&o.body||"{}")}catch(e){}
+  let msg="Demo only: install LiveGrab to use this";
+  if(a==="clip"){job={t:Date.now(),post:S.post_roll};msg=null}
+  else if(a==="settings"){upd(b);msg=null}
+  else if(a==="stop"){msg="Demo only: Stop works in OBS"}
+  return new Response(JSON.stringify({ok:true,msg}),{headers:{"Content-Type":"application/json"}})}
+ return real(u,o)};
+if(location.hash==="#settings")addEventListener("load",()=>setTimeout(()=>document.getElementById("gear").click(),300));
+})();
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const LABEL={stopped:"Stopped",connecting:"Connecting...",live:"LIVE",reconnecting:"Reconnecting...",offline:"Offline, waiting",error:"Error, see log"};
+let S=null,urlDirty=false,busyUntil=0,lastClipCount=-1;
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2600)}
+async function api(p,b){try{const r=await fetch("/api/"+p,{method:"POST",headers:{"Content-Type":"application/json","X-LiveGrab":"1"},body:JSON.stringify(b||{})});
+const j=await r.json();if(j.msg)toast(j.msg);setTimeout(poll,250);return j}catch(e){toast("Couldn't reach the script")}}
+function fmt(s){s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+":"+String(m).padStart(2,"0"):m)+":"+String(x).padStart(2,"0")}
+function setChips(id,v){for(const b of $(id).children)b.classList.toggle("on",+b.dataset.v===+v)}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+function shortDir(d){const p=d.replace(/\\/g,"/").split("/").filter(Boolean);return p.length>2?".../"+p.slice(-2).join("/"):d}
+function setVal(id,v,prop){const e=$(id);if(document.activeElement!==e)e[prop||"value"]=v}
+function render(){
+  const st=S.status;$("dot").className="dot "+st;
+  $("stxt").textContent=(LABEL[st]||st)+(S.channel&&st!=="stopped"?"  ·  "+S.channel:"");
+  $("upt").textContent=S.live_for!=null?fmt(S.live_for):"";
+  if(!urlDirty&&document.activeElement!==$("url"))$("url").value=S.url||"";
+  setVal("quality",S.quality||"best");
+  const run=S.running;$("go").textContent=run?"Stop":"Start";$("go").className=run?"stop":"primary";
+  $("url").disabled=run;$("quality").disabled=run;
+  setChips("len",S.clip_seconds);setChips("post",S.post_roll);
+  $("cliplbl").textContent="last "+S.clip_seconds+"s"+(S.post_roll?" + "+S.post_roll+"s after":"");
+  const outMode=!S.vertical?"wide":(S.vertical_only?"vertical":"both");
+  for(const b of $("fmt").children)b.classList.toggle("on",b.dataset.v===outMode);
+  setVal("vmode",S.vertical_mode);$("vmode").disabled=outMode==="wide";$("vrow").style.opacity=outMode==="wide"?.45:1;
+  const busy=S.clipping>0||Date.now()<busyUntil;
+  $("clip").disabled=st!=="live";
+  renderJobs(S.jobs||[]);
+  $("rb").textContent=S.obs_rb?"Save OBS Replay":"OBS Replay (off)";
+  $("savedto").textContent="→ "+shortDir(S.clips_dir);
+  const c=$("clips");
+  if(!S.clips.length)c.innerHTML='<div class="empty">No clips yet. Press F9 or CLIP IT while a channel is live.</div>';
+  else c.innerHTML=S.clips.map(k=>'<div class="ci" data-n="'+encodeURIComponent(k.name)+'"><span class="grow ellip">'+esc(k.name)+'</span>'+
+    (k.only?'<span class="badge">9:16 only</span>':k.vertical?'<span class="badge">+ 9:16</span>':'')+'<span class="t">'+k.ago+'</span></div>').join("");
+  if(lastClipCount>=0&&S.clip_total>lastClipCount&&S.clips.length)toast("Saved "+S.clips[0].name);lastClipCount=S.clip_total;
+  const L=$("log");const atBottom=L.scrollTop+L.clientHeight>=L.scrollHeight-4;L.textContent=S.log.join("\n");if(atBottom)L.scrollTop=L.scrollHeight;
+  // settings view
+  $("ver").textContent="v"+S.version;$("dir").textContent=S.clips_dir;
+  $("browse").disabled=S.picking;$("browse").textContent=S.picking?"Picker open...":"Browse...";
+  $("presets").innerHTML=S.presets.map(p=>'<button data-k="'+p.key+'" class="'+(p.active?"on":"")+'" title="'+esc(p.path)+'">'+esc(p.label)+'</button>').join("");
+  $("s_ll").checked=S.low_latency;setVal("s_buf",String(S.buffer_seconds));
+  renderUpdate(S.update||{});
+  $("s_auto").checked=S.auto_start;$("s_rec").checked=S.record_with_grab;$("s_rb").checked=S.use_obs_replay;$("s_ren").checked=S.rename_obs_replays;
+}
+function renderJobs(J){
+  const P=$("prog");
+  if(!J.length){P.className="prog";return}
+  const active=J.filter(j=>j.stage!=="done"&&j.stage!=="failed");
+  const j=active.length?active[active.length-1]:J[J.length-1];
+  P.className="prog show "+(j.stage==="done"?"done":j.stage==="failed"?"failed":"");
+  $("plbl").textContent=j.stage==="done"?"Saved \u2713 "+j.name:j.label;
+  $("peta").textContent=j.stage==="done"||j.stage==="failed"?"":(j.eta<1?"almost done":"~"+Math.ceil(j.eta)+"s left");
+  $("pbar").style.width=j.pct+"%";
+  $("pmore").textContent=active.length>1?"+"+(active.length-1)+" more clip"+(active.length>2?"s":"")+" in progress":"";
+}
+function renderUpdate(U){
+  const st=U.state||"idle",btn=$("u_btn");
+  $("u_cur").textContent="LiveGrab v"+S.version;
+  $("gear").classList.toggle("has-update",st==="available"||st==="ready");
+  const msgs={idle:"",checking:"Checking GitHub...",none:"You're on the latest version",available:"Version "+U.latest+" is available",
+    downloading:"Downloading v"+U.latest+"... "+Math.round(U.pct||0)+"%",ready:"v"+U.latest+" will install when you close OBS",
+    error:U.msg||"Couldn't check for updates",nosetup:"Update server isn't set up yet"};
+  $("u_msg").textContent=msgs[st]||"";
+  $("u_bar").style.display=st==="downloading"?"block":"none";$("u_fill").style.width=(U.pct||0)+"%";
+  const n=$("u_notes");n.style.display=(st==="available"||st==="ready")&&U.notes?"block":"none";n.textContent=U.notes||"";
+  btn.disabled=st==="checking"||st==="downloading";btn.className="grow";
+  if(st==="available"){btn.textContent="Update to v"+U.latest;btn.className="grow okbtn"}
+  else if(st==="ready"){btn.textContent="Cancel update";}
+  else if(st==="checking")btn.textContent="Checking...";
+  else if(st==="downloading")btn.textContent="Downloading...";
+  else btn.textContent="Check for updates";
+  btn.dataset.act=st==="available"?"update_install":st==="ready"?"update_cancel":"update_check";
+  $("u_auto").checked=S.update_auto!==false;
+}
+async function poll(){let r;try{r=await fetch("/api/status",{cache:"no-store"});S=await r.json()}
+catch(e){$("banner").style.display="block";return}
+$("banner").style.display="none";if(S.version&&S.version!=="1.6.1"){location.reload();return}try{render()}catch(e){console.error(e);toast("Dock error: "+e.message)}}
+$("url").addEventListener("input",()=>urlDirty=true);
+$("url").addEventListener("keydown",e=>{if(e.key==="Enter")$("go").click()});
+$("go").onclick=()=>{if(S&&S.running)api("stop");else{const u=$("url").value.trim();if(!u){toast("Type a channel first");return}
+  urlDirty=false;api("start",{url:u,quality:$("quality").value})}};
+$("clip").onclick=()=>{api("clip")};
+$("len").onclick=e=>{if(e.target.dataset.v)api("settings",{clip_seconds:+e.target.dataset.v})};
+$("post").onclick=e=>{if(e.target.dataset.v)api("settings",{post_roll:+e.target.dataset.v})};
+$("fmt").onclick=e=>{const b=e.target.closest("button");if(b)api("settings",{output:b.dataset.v})};
+$("vmode").onchange=()=>api("settings",{vertical_mode:$("vmode").value});
+$("rb").onclick=()=>api("obs_replay");$("folder").onclick=()=>api("open_folder");
+$("clips").onclick=e=>{const d=e.target.closest(".ci");if(d)api("open_clip",{name:decodeURIComponent(d.dataset.n)})};
+const openS=()=>$("settings").classList.add("open"),closeS=()=>$("settings").classList.remove("open");
+$("gear").onclick=openS;$("savedto").onclick=openS;$("back").onclick=closeS;
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeS()});
+$("browse").onclick=()=>api("pick_folder");$("opendir").onclick=()=>api("open_folder");
+$("presets").onclick=e=>{const b=e.target.closest("button");if(b)api("set_folder",{preset:b.dataset.k})};
+$("s_ll").onchange=()=>api("settings",{low_latency:$("s_ll").checked});
+$("s_buf").onchange=()=>api("settings",{buffer_seconds:+$("s_buf").value});
+$("s_auto").onchange=()=>api("settings",{auto_start:$("s_auto").checked});
+$("s_rb").onchange=()=>api("settings",{use_obs_replay:$("s_rb").checked});
+$("s_ren").onchange=()=>api("settings",{rename_obs_replays:$("s_ren").checked});
+$("s_rec").onchange=()=>api("settings",{record_with_grab:$("s_rec").checked});
+$("u_btn").onclick=()=>api($("u_btn").dataset.act||"update_check");
+$("u_auto").onchange=()=>api("settings",{update_auto:$("u_auto").checked});
+poll();(function loop(){setTimeout(()=>{poll();loop()},S&&S.jobs&&S.jobs.length?400:1000)})();
+</script></body></html>

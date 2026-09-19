@@ -7,8 +7,7 @@
 <meta name="description" content="LiveGrab pulls any Twitch, Kick or YouTube live stream into OBS and clips it with one key, with a 9:16 version ready for TikTok, Shorts and Reels.">
 <meta property="og:title" content="LiveGrab for OBS">
 <meta property="og:description" content="Clip anyone's live stream while they're live. One key, 9:16 ready.">
-<meta property="og:image" content="img/dock.png">
-<link rel="icon" href="img/icon.png">
+<link rel="icon" href="img/icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -62,6 +61,8 @@ nav .wrap{display:flex;align-items:center;gap:24px;height:64px}
 .shot{position:relative;justify-self:center;max-width:380px;width:100%}
 .shot .frame{border-radius:18px;padding:10px;background:linear-gradient(180deg,#262736,#15161d);border:1px solid var(--line);box-shadow:0 40px 90px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.02) inset}
 .shot .frame img{border-radius:10px}
+.shot .frame iframe{display:block;width:100%;height:860px;border:0;border-radius:10px;background:#1b1c21}
+.demo-note{text-align:center;font-size:12px;color:var(--dim);margin:10px 0 0}
 .shot .tag{position:absolute;left:-26px;bottom:120px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;box-shadow:0 20px 40px -15px rgba(0,0,0,.7)}
 .shot .tag b{display:block;font-size:12px;color:var(--green)}
 
@@ -146,7 +147,7 @@ footer a{color:var(--muted)}
 
 <nav>
   <div class="wrap">
-    <a class="brand" href="#"><img src="img/icon.png" alt="">LIVEGRAB</a>
+    <a class="brand" href="#"><img src="img/icon.svg" alt="">LIVEGRAB</a>
     <div class="navlinks">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
@@ -174,8 +175,8 @@ footer a{color:var(--muted)}
       <div class="meta"><span>Free</span><span>One-click installer</span><span>Updates itself</span></div>
     </div>
     <div class="shot">
-      <div class="frame"><img src="img/dock.png" alt="The LiveGrab dock inside OBS, showing a live channel, the CLIP IT button and a progress bar"></div>
-      <div class="tag"><b>Saved ✓</b>streamer_22-41-07_vertical.mp4</div>
+      <div class="frame"><iframe src="dock-demo.html" title="Live demo of the LiveGrab dock" loading="lazy"></iframe></div>
+      <p class="demo-note">Live demo. Try CLIP IT or the gear.</p>
     </div>
   </div>
 </header>
@@ -224,7 +225,7 @@ footer a{color:var(--muted)}
         <li><span><b>Buffer size</b> from 1 to 10 minutes, so you can grab the long ones too.</span></li>
       </ul>
     </div>
-    <div class="shot"><div class="frame"><img src="img/settings.png" alt="LiveGrab settings page with save folder, stream, replay buffer, updates and hotkeys"></div></div>
+    <div class="shot"><div class="frame"><iframe src="dock-demo.html#settings" title="Live demo of the LiveGrab settings page" loading="lazy"></iframe></div></div>
   </div>
 </section>
 

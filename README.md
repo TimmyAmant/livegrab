@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/icon.png" width="80" alt="LiveGrab icon"></p>
+<p align="center"><img src="docs/img/icon.svg" width="80" alt="LiveGrab icon"></p>
 <h1 align="center">LiveGrab for OBS</h1>
 <p align="center">Clip anyone's Twitch, Kick or YouTube stream <b>while they're live</b>, right inside OBS.<br>One key saves the clip, with a 9:16 version ready for TikTok, Shorts and Reels.</p>
 <p align="center">
@@ -7,7 +7,7 @@
   <a href="https://github.com/TimmyAmant/livegrab/releases">Release notes</a>
 </p>
 
-<p align="center"><img src="docs/img/dock.png" width="360" alt="The LiveGrab dock in OBS"></p>
+<p align="center"><a href="https://timmyamant.github.io/livegrab/"><b>Try the live demo of the dock on the website</b></a></p>
 
 ## How it works
 
